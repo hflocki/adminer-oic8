@@ -1,9 +1,9 @@
 FROM adminer
 USER root
 
-RUN apt --no-cache add libaio libnsl libc6-compat curl 
-RUN ln -s /lib/libc.so.6 /usr/lib/libresolv.so.2
-RUN cd /tmp
+RUN apt install libaio libnsl libc6-compat curl && \
+    ln -s /lib/libc.so.6 /usr/lib/libresolv.so.2 && \
+    cd /tmp
 
 ENV ORACLE_BASE /usr/local/oracle
 ENV LD_LIBRARY_PATH /usr/local/oracle/instantclient_21_7:/lib64
