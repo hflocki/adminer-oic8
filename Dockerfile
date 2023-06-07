@@ -2,6 +2,7 @@ FROM adminer
 USER root
 
 RUN apk --no-cache add libaio libnsl libc6-compat curl && \
+  ln -s /lib/libc.so.6 /usr/lib/libresolv.so.2 && \
   cd /tmp
 
 ENV ORACLE_BASE /usr/local/oracle
@@ -11,7 +12,7 @@ ENV ORACLE_HOME /usr/local/oracle
 
 # # Install Oracle Client and build OCI8 (Oracle Command Interface 8 - PHP extension)
 RUN \
-## Download and unarchive Instant Client v21
+## Download and unarchive Instant Client v11
   mkdir /usr/local/oracle && \
   curl -o /tmp/sdk.zip https://download.oracle.com/otn_software/linux/instantclient/217000/instantclient-sdk-linux.x64-21.7.0.0.0dbru.zip && \
   curl -o /tmp/basic_lite.zip https://download.oracle.com/otn_software/linux/instantclient/217000/instantclient-basiclite-linux.x64-21.7.0.0.0dbru.zip && \
