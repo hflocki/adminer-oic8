@@ -1,1 +1,10 @@
 Adminer for Oracle DB
+
+credits:https://blog.shellnetsecurity.com/2022/09/337/general/configuring-adminer-for-oracle-databases/
+
+
+ccess an Oracle Database From adminer
+After a little trial and error, I found that adminer is expecting to connect to an Oracle database via TNS Name. If you looked closely at my Dockerfile, you’ll see that I set the environment variable TNS_ADMIN to the path of /usr/local/oracle/instantclient_21_7/network/admin. This means that I’ll need to create a tnsnames.ora file to be used for my connection to my Oracle database. For those that aren’t familiar with tnsnames.ora and its syntax, you should read up on them in Oracle’s documentation. For those that just don’t care and want to connect to a database, you can use my sample below:
+
+oracle_rds = (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle-rds.amazon.com)(PORT=1521))(CONNECT_DATA=(SID=ORCL)))
+This is a sample entry that I’m using to connect to an AWS Oracle RDS instance over the non-TLS port. I created this tnsnames.ora file in a directory on my machine and then I re-ran the docker image mounting that directory to /usr/local/oracle/instantclient_21_7/network/admin and expose port 8080 to my local machine like below:
