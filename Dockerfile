@@ -1,78 +1,59 @@
-#
-# PHP-fpm container based on official PHP 7.3 image with additional extensions
-# like zip, pdo_mysql, bcmath, oci8 and gd. Image is build for Laravel applications.
-#
-# OS: Debian 9 Streatch-slim
-#
-FROM php:7.3-fpm
+FROM dockette/debian:buster
 
-#
-#--------------------------------------------------------------------------
-# General Updates
-#--------------------------------------------------------------------------
-#
+LABEL maintainer="Milan Sulc <sulcmil@gmail.com>"
 
-# Update OS packages and install required ones.
+ENV ADMINER_VERSION=4.8.1
+ENV MEMORY=256M
+ENV UPLOAD=2048M
+ENV LD_LIBRARY_PATH="/usr/local/lib;/usr/local/instantclient"
+ENV WORKERS=4
+ENV PHP_CLI_SERVER_WORKERS=${WORKERS}
+
+# DEPENDENCIES #################################################################
 RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends \
-      curl \
-      libmemcached-dev \
-      libz-dev \
-      libpq-dev \
-      libjpeg-dev \
-      libpng-dev \
-      libfreetype6-dev \
-      libssl-dev \
-      libmcrypt-dev \
-      zip \
-      unzip \
-      build-essential \
-      libaio1 \
-      libzip-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && rm /var/log/lastlog /var/log/faillog
+    apt-get dist-upgrade -y && \
+    apt install -y apt-transport-https lsb-release ca-certificates curl wget && \
+    wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg && \
+    sh -c 'echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list' && \
+    apt-get update && \
+    apt-get install -y \
+        make \
+        autoconf \
+        g++ \
+        unzip \
+        libaio1 \
+        ca-certificates \
+        php8.0 \
+        php8.0-dev \
+        php8.0-xml \
+        php-pear \
+        tini && \
+    wget https://github.com/vrana/adminer/releases/download/v$ADMINER_VERSION/adminer-$ADMINER_VERSION.php -O /srv/index.php
 
-#
-#--------------------------------------------------------------------------
-# Application Dependencies
-#--------------------------------------------------------------------------
-#
+# OCI8 (ORACLE) ################################################################
+RUN wget https://github.com/f00b4r/oracle-instantclient/raw/master/instantclient-basic-linux.x64-12.1.0.2.0.zip -O /tmp/instantclient-basic-linux.x64-12.1.0.2.0.zip && \
+    wget https://github.com/f00b4r/oracle-instantclient/raw/master/instantclient-sdk-linux.x64-12.1.0.2.0.zip -O /tmp/instantclient-sdk-linux.x64-12.1.0.2.0.zip && \
+    unzip /tmp/instantclient-basic-linux.x64-12.1.0.2.0.zip -d /usr/local/ && \
+    unzip /tmp/instantclient-sdk-linux.x64-12.1.0.2.0.zip -d /usr/local/ && \
+    ln -s /usr/local/instantclient_12_1 /usr/local/instantclient && \
+    ln -s /usr/local/instantclient/libclntsh.so.12.1 /usr/local/instantclient/libclntsh.so && \
+    echo 'instantclient,/usr/local/instantclient' | pecl install oci8 && \
+    echo "extension=oci8.so" > /etc/php/8.0/cli/conf.d/00-oci8.ini
 
-# Download oracle packages and install OCI8
-RUN curl -o instantclient-basic-193000.zip https://dependencies.silencesys.dev/instantclient-basic-193000.zip \
-    && unzip instantclient-basic-193000.zip -d /usr/lib/oracle/ \
-    && rm instantclient-basic-193000.zip \
-    && curl -o instantclient-basic-193000.zip https://dependencies.silencesys.dev/instantclient-sdk-193000.zip \
-    && unzip instantclient-basic-193000.zip -d /usr/lib/oracle/ \
-    && rm instantclient-basic-193000.zip \
-    && echo /usr/lib/oracle/instantclient_19_3 > /etc/ld.so.conf.d/oracle-instantclient.conf \
-    && ldconfig
+# CLEAN UP #####################################################################
+RUN apt-get clean -y && \
+    apt-get autoclean -y && \
+    apt-get remove -y wget && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/* /var/lib/log/* /tmp/* /var/tmp/*
 
-ENV LD_LIBRARY_PATH /usr/lib/oracle/instantclient_19_3
+WORKDIR /srv
+EXPOSE 80
 
-# Install PHP extensions: Laravel needs also zip, mysqli and bcmath which 
-# are not included in default image. Also install our compiled oci8 extensions.
-RUN docker-php-ext-install zip pdo_mysql tokenizer bcmath opcache pcntl \
-    && docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/lib/oracle/instantclient_19_3 \
-    && docker-php-ext-install -j$(nproc) oci8 \
-    # Install the PHP gd library
-    && docker-php-ext-configure gd \
-        --with-jpeg-dir=/usr/lib \
-        --with-freetype-dir=/usr/include/freetype2 && \
-        docker-php-ext-install gd
+ENTRYPOINT ["/sbin/tini", "--"]
 
-#
-#--------------------------------------------------------------------------
-# Final Touch
-#--------------------------------------------------------------------------
-#
-
-# Copy our configs to the image.
-COPY ./config/custom.ini /usr/local/etc/php/conf.d
-COPY ./config/pool.d/custom.conf /usr/local/etc/php/conf.d
-
-# Expose port 9000 and start php-fpm server
-CMD ["php-fpm"]
-EXPOSE 9000
+CMD /usr/bin/php \
+    -d memory_limit=$MEMORY \
+    -d upload_max_filesize=$UPLOAD \
+    -d post_max_size=$UPLOAD \
+    -S 0.0.0.0:80
