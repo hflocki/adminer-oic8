@@ -12,17 +12,17 @@ ENV TNS_ADMIN /usr/local/oracle/instantclient_21_7/network/admin
 ENV ORACLE_HOME /usr/local/oracle
 
 # # Install Oracle Client and build OCI8 (Oracle Command Interface 8 - PHP extension)
-RUN \
-## Download and unarchive Instant Client v11
-  mkdir /usr/local/oracle && \
-  curl -o /tmp/sdk.zip https://download.oracle.com/otn_software/linux/instantclient/217000/instantclient-sdk-linux.x64-21.7.0.0.0dbru.zip && \
-  curl -o /tmp/basic_lite.zip https://download.oracle.com/otn_software/linux/instantclient/217000/instantclient-basiclite-linux.x64-21.7.0.0.0dbru.zip && \
-  unzip -d /usr/local/oracle /tmp/sdk.zip && \
-  unzip -d /usr/local/oracle /tmp/basic_lite.zip
+RUN mkdir /usr/local/oracle 
+
+## Download and unarchive Instant Client v11  
+RUN curl -o /tmp/sdk.zip https://download.oracle.com/otn_software/linux/instantclient/2110000/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip 
+RUN curl -o /tmp/basic_lite.zip https://download.oracle.com/otn_software/linux/instantclient/217000/instantclient-basiclite-linux.x64-21.7.0.0.0dbru.zip
+RUN unzip -d /usr/local/oracle /tmp/sdk.zip 
+RUN unzip -d /usr/local/oracle /tmp/basic_lite.zip
 
 ## Build OCI8 with PECL
-RUN \
-  C_INCLUDE_PATH=/usr/local/oracle/instantclient_21_7/sdk/include/ docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/local/oracle/instantclient_21_7 && docker-php-ext-install oci8
+RUN C_INCLUDE_PATH=/usr/local/oracle/instantclient_21_7/sdk/include/ docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/local/oracle/instantclient_21_7 
+RUN docker-php-ext-install oci8
 
 #  Clean up
 RUN \
