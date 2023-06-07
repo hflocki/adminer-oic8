@@ -1,7 +1,7 @@
 FROM adminer
 USER root
 
-RUN apt install libaio-dev libnsl libc6-compat curl 
+RUN apt install libaio-dev libnsl-dev libc6-dev curl 
 RUN ln -s /lib/libc.so.6 /usr/lib/libresolv.so.2
 RUN cd /tmp
 
