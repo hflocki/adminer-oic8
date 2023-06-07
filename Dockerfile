@@ -1,31 +1,78 @@
-FROM adminer
-USER root
+#
+# PHP-fpm container based on official PHP 7.3 image with additional extensions
+# like zip, pdo_mysql, bcmath, oci8 and gd. Image is build for Laravel applications.
+#
+# OS: Debian 9 Streatch-slim
+#
+FROM php:7.3-fpm
 
-RUN apt-get update && apt-get install -y apt-transport-https
-RUN apt-get install -y libaio-dev libnsl-dev libc6-dev curl zip 
-RUN ln -s /lib/libc.so.6 /usr/lib/libresolv.so.2
-RUN cd /tmp
+#
+#--------------------------------------------------------------------------
+# General Updates
+#--------------------------------------------------------------------------
+#
 
-ENV ORACLE_BASE /usr/local/oracle
-ENV LD_LIBRARY_PATH /usr/local/oracle/instantclient_21_7:/lib64
-ENV TNS_ADMIN /usr/local/oracle/instantclient_21_7/network/admin
-ENV ORACLE_HOME /usr/local/oracle
+# Update OS packages and install required ones.
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+      curl \
+      libmemcached-dev \
+      libz-dev \
+      libpq-dev \
+      libjpeg-dev \
+      libpng-dev \
+      libfreetype6-dev \
+      libssl-dev \
+      libmcrypt-dev \
+      zip \
+      unzip \
+      build-essential \
+      libaio1 \
+      libzip-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && rm /var/log/lastlog /var/log/faillog
 
-# # Install Oracle Client and build OCI8 (Oracle Command Interface 8 - PHP extension)
-RUN mkdir /usr/local/oracle 
+#
+#--------------------------------------------------------------------------
+# Application Dependencies
+#--------------------------------------------------------------------------
+#
 
-## Download and unarchive Instant Client v11  
-RUN curl -o /tmp/sdk.zip https://download.oracle.com/otn_software/linux/instantclient/2110000/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip 
-RUN curl -o /tmp/basic_lite.zip https://download.oracle.com/otn_software/linux/instantclient/217000/instantclient-basiclite-linux.x64-21.7.0.0.0dbru.zip
-RUN unzip -d /usr/local/oracle /tmp/sdk.zip 
-RUN unzip -d /usr/local/oracle /tmp/basic_lite.zip
+# Download oracle packages and install OCI8
+RUN curl -o instantclient-basic-193000.zip https://dependencies.silencesys.dev/instantclient-basic-193000.zip \
+    && unzip instantclient-basic-193000.zip -d /usr/lib/oracle/ \
+    && rm instantclient-basic-193000.zip \
+    && curl -o instantclient-basic-193000.zip https://dependencies.silencesys.dev/instantclient-sdk-193000.zip \
+    && unzip instantclient-basic-193000.zip -d /usr/lib/oracle/ \
+    && rm instantclient-basic-193000.zip \
+    && echo /usr/lib/oracle/instantclient_19_3 > /etc/ld.so.conf.d/oracle-instantclient.conf \
+    && ldconfig
 
-## Build OCI8 with PECL
-RUN C_INCLUDE_PATH=/usr/local/oracle/instantclient_21_7/sdk/include/ 
-RUN docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/local/oracle/instantclient_21_7 
-RUN docker-php-ext-install oci8
+ENV LD_LIBRARY_PATH /usr/lib/oracle/instantclient_19_3
 
-#  Clean up
-RUN \
-  rm -rf /tmp/*.zip /var/cache/apk/* /tmp/pear/
-USER adminer
+# Install PHP extensions: Laravel needs also zip, mysqli and bcmath which 
+# are not included in default image. Also install our compiled oci8 extensions.
+RUN docker-php-ext-install zip pdo_mysql tokenizer bcmath opcache pcntl \
+    && docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/lib/oracle/instantclient_19_3 \
+    && docker-php-ext-install -j$(nproc) oci8 \
+    # Install the PHP gd library
+    && docker-php-ext-configure gd \
+        --with-jpeg-dir=/usr/lib \
+        --with-freetype-dir=/usr/include/freetype2 && \
+        docker-php-ext-install gd
+
+#
+#--------------------------------------------------------------------------
+# Final Touch
+#--------------------------------------------------------------------------
+#
+
+# Copy our configs to the image.
+COPY ./config/custom.ini /usr/local/etc/php/conf.d
+COPY ./config/pool.d/custom.conf /usr/local/etc/php/conf.d
+
+# Expose port 9000 and start php-fpm server
+CMD ["php-fpm"]
+EXPOSE 9000
