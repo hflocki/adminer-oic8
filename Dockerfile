@@ -21,7 +21,8 @@ RUN unzip -d /usr/local/oracle /tmp/sdk.zip
 RUN unzip -d /usr/local/oracle /tmp/basic_lite.zip
 
 ## Build OCI8 with PECL
-RUN C_INCLUDE_PATH=/usr/local/oracle/instantclient_21_7/sdk/include/ docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/local/oracle/instantclient_21_7 
+RUN C_INCLUDE_PATH=/usr/local/oracle/instantclient_21_7/sdk/include/ 
+RUN docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/local/oracle/instantclient_21_7 
 RUN docker-php-ext-install oci8
 
 #  Clean up
