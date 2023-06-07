@@ -1,18 +1,1 @@
 Adminer for Oracle DB
-
-credits:https://blog.shellnetsecurity.com/2022/09/337/general/configuring-adminer-for-oracle-databases/
-
-
-Access an Oracle Database From adminer
-Oracle database conencts via TNS Name. 
-
-environment variable TNS_ADMIN to the path of /usr/local/oracle/instantclient_21_7/network/admin. 
-
-You need create a tnsnames.ora file to be used for my connection to Oracle database. 
-For those that aren’t familiar with tnsnames.ora and its syntax, you should read up on them in Oracle’s documentation.
-https://docs.oracle.com/en/database/oracle/oracle-database/21/netrf/local-naming-parameters-in-tns-ora-file.html#GUID-7F967CE5-5498-427C-9390-4A5C6767ADAA
-
-
-Sample:
-
-oracle_rds = (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle-rds.amazon.com)(PORT=1521))(CONNECT_DATA=(SID=ORCL)))
