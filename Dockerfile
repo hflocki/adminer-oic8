@@ -1,7 +1,7 @@
 FROM adminer
 USER root
 
-RUN apk --no-cache add libaio libnsl libc6-compat curl && \
+RUN apk add --no-cache libaio libnsl libc6-compat curl && \
   ln -s /lib/libc.so.6 /usr/lib/libresolv.so.2 && \
   cd /tmp
 
