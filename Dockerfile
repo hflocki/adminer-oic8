@@ -2,7 +2,7 @@ FROM adminer
 USER root
 
 RUN apt-get update && apt-get install -y apt-transport-https
-RUN apt-get install -y libaio-dev libnsl-dev libc6-dev curl
+RUN apt-get install -y libaio-dev libnsl-dev libc6-dev curl zip 
 RUN ln -s /lib/libc.so.6 /usr/lib/libresolv.so.2
 RUN cd /tmp
 
